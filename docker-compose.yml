@@ -1,0 +1,7 @@
+services:
+  app:
+    build: .
+    container_name: car_marketplace_app
+    ports:
+      - "8080:8080"
+    restart: always
