@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o main ./cmd/app
+RUN go build -o main ./cmd/main.go
 
 # ============ RUN STAGE ============
 FROM alpine:latest

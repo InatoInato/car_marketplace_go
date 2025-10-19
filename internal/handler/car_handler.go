@@ -12,10 +12,13 @@ func Home(c *fiber.Ctx) error {
 func Car(c *fiber.Ctx) error{
 		car := model.Car{
 			Make: "Nissan",
-			Model: "GTR R35",
-			Year: 2020,
-			Color: "Black",
-			EngineCapacity: 3.8,
+			CarModel: "Primera P10",
+			Year: 1995,
+			Color: "Silver",
+			EngineCapacity: 2.0,
+			Transmission: "Manual",
+			IsRunning: true,
+			UserID: 1,
 		}
 	return c.JSON(car)
 }
