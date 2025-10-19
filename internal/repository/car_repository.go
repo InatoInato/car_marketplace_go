@@ -20,8 +20,15 @@ func (r *CarRepository) CreateCar(car *model.Car) error {
 func (r *CarRepository) GetCarByID(id uint) (*model.Car, error) {
 	var car model.Car
 	err := r.db.First(&car, id).Error
-	return &car, err
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &car, nil
 }
+
 
 func (r *CarRepository) GetAllCars() ([]model.Car, error) {
 	var cars []model.Car

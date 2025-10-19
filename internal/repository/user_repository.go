@@ -20,8 +20,15 @@ func (r *UserRepository) CreateUser(user *model.User) error {
 func (r *UserRepository) GetUserByID(id uint) (*model.User, error) {
 	var user model.User
 	err := r.db.First(&user, id).Error
-	return &user, err
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil 
+		}
+		return nil, err
+	}
+	return &user, nil
 }
+
 
 func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 	var user model.User

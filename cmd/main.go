@@ -27,13 +27,15 @@ func main() {
 	config.ConnectDB()
 	cache := config.ConnectRedis()
 
-	carRepo := repository.NewCarRepository(config.DB)
-	carService := service.NewCarService(carRepo, cache)
-	carHandler := handler.NewCarHandler(carService)
+
 
 	userRepo := repository.NewUserRepository(config.DB)
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
+
+	carRepo := repository.NewCarRepository(config.DB)
+	carService := service.NewCarService(carRepo, userRepo, cache)
+	carHandler := handler.NewCarHandler(carService)
 
 	// Get server port from environment variables
 	port := os.Getenv("SERVER_PORT")

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/InatoInato/car_marketplace_go.git/internal/model"
@@ -32,12 +33,18 @@ func (h *CarHandler) CreateCar(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	if err := h.service.Create(&car); err != nil {
+	
+	err := h.service.Create(&car)
+	if err != nil {
+		if errors.Is(err, service.ErrUserNotFound) {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.Status(201).JSON(car)
 }
+
 
 // ✅ READ ALL
 func (h *CarHandler) GetAllCars(c *fiber.Ctx) error {

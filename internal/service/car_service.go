@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,20 +14,32 @@ import (
 
 type CarService struct {
 	repo  *repository.CarRepository
+	userRepo * repository.UserRepository
 	cache *redis.Client
 }
 
-func NewCarService(repo *repository.CarRepository, cache *redis.Client) *CarService {
-	return &CarService{repo: repo, cache: cache}
+func NewCarService(repo *repository.CarRepository, userRepo *repository.UserRepository ,cache *redis.Client) *CarService {
+	return &CarService{repo: repo, userRepo: userRepo, cache: cache}
 }
 
 var ctx = context.Background()
 
+
+var ErrUserNotFound = errors.New("user not found")
+
 func (s *CarService) Create(car *model.Car) error {
+	user, err := s.userRepo.GetUserByID(car.UserID)
+	if err != nil {
+		return err // db error
+	}
+	if user == nil {
+		return fmt.Errorf("%w: ID %d", ErrUserNotFound, car.UserID)
+	}
+
 	if err := s.repo.CreateCar(car); err != nil {
 		return err
 	}
-	s.cache.Del(ctx, "cars:all") 
+	s.cache.Del(ctx, "cars:all")
 	return nil
 }
 
