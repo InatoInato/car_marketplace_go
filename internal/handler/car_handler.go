@@ -1,24 +1,100 @@
 package handler
 
 import (
+	"strconv"
+
 	"github.com/InatoInato/car_marketplace_go.git/internal/model"
+	"github.com/InatoInato/car_marketplace_go.git/internal/service"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
-func Home(c *fiber.Ctx) error {
-	return c.SendString("Hello, World!")
+type CarHandler struct {
+	service   *service.CarService
+	validator *validator.Validate
 }
 
-func Car(c *fiber.Ctx) error{
-		car := model.Car{
-			Make: "Nissan",
-			CarModel: "Primera P10",
-			Year: 1995,
-			Color: "Silver",
-			EngineCapacity: 2.0,
-			Transmission: "Manual",
-			IsRunning: true,
-			UserID: 1,
-		}
+func NewCarHandler(service *service.CarService) *CarHandler {
+	return &CarHandler{
+		service:   service,
+		validator: validator.New(),
+	}
+}
+
+// ✅ CREATE
+func (h *CarHandler) CreateCar(c *fiber.Ctx) error {
+	var car model.Car
+	if err := c.BodyParser(&car); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid input"})
+	}
+
+	if err := h.validator.Struct(car); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	if err := h.service.Create(&car); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(201).JSON(car)
+}
+
+// ✅ READ ALL
+func (h *CarHandler) GetAllCars(c *fiber.Ctx) error {
+	cars, err := h.service.GetAll()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(cars)
+}
+
+// ✅ READ BY ID
+func (h *CarHandler) GetCarByID(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid car ID"})
+	}
+
+	car, err := h.service.GetByID(uint(id))
+	if err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Car not found"})
+	}
 	return c.JSON(car)
+}
+
+// ✅ UPDATE
+func (h *CarHandler) UpdateCar(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid car ID"})
+	}
+
+	var car model.Car
+	if err := c.BodyParser(&car); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid input"})
+	}
+
+	car.ID = uint(id)
+
+	if err := h.validator.Struct(car); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	if err := h.service.Update(&car); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(car)
+}
+
+// ✅ DELETE
+func (h *CarHandler) DeleteCar(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid car ID"})
+	}
+
+	if err := h.service.Delete(uint(id)); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.SendStatus(204)
 }

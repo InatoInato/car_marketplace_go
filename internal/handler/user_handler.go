@@ -71,3 +71,13 @@ func (h *UserHandler) Login(ctx *fiber.Ctx) error {
 		"token": token,
 	})
 }
+
+func (h *UserHandler) GetAllUsers(ctx *fiber.Ctx) error {
+	users, err := h.service.GetAllUsers()
+	if err != nil {
+		return ctx.Status(500).JSON(fiber.Map{
+			"error": "Failed to retrieve users",
+		})
+	}
+	return ctx.JSON(users)
+}
