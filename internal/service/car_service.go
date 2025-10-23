@@ -14,17 +14,16 @@ import (
 )
 
 type CarService struct {
-	repo  *repository.CarRepository
-	userRepo * repository.UserRepository
-	cache *redis.Client
+	repo     *repository.CarRepository
+	userRepo *repository.UserRepository
+	cache    *redis.Client
 }
 
-func NewCarService(repo *repository.CarRepository, userRepo *repository.UserRepository ,cache *redis.Client) *CarService {
+func NewCarService(repo *repository.CarRepository, userRepo *repository.UserRepository, cache *redis.Client) *CarService {
 	return &CarService{repo: repo, userRepo: userRepo, cache: cache}
 }
 
 var ctx = context.Background()
-
 
 var ErrUserNotFound = errors.New("user not found")
 
@@ -40,12 +39,42 @@ func (s *CarService) Create(car *model.Car) error {
 	if err := s.repo.CreateCar(car); err != nil {
 		return err
 	}
-	
+
 	// Async cache invalidation
-	// Very important 
+	// Very important
 	go func(id uint) {
 		_ = s.cache.Del(ctx, "cars:all")
 		_ = s.cache.Del(ctx, fmt.Sprintf("car:%d", id))
+	}(car.ID)
+
+	return nil
+}
+
+func (s *CarService) CreateCarWithPhotos(car *model.Car, photoURLs []string) error {
+	user, err := s.userRepo.GetUserByID(car.UserID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return fmt.Errorf("%w: ID %d", ErrUserNotFound, car.UserID)
+	}
+
+	if err := s.repo.CreateCar(car); err != nil {
+		return err
+	}
+
+	go func(carID uint, urls []string) {
+		for _, url := range urls {
+			_ = s.repo.CreateCarPhoto(&model.CarPhoto{
+				CarID: carID,
+				URL:   url,
+			})
+		}
+	}(car.ID, photoURLs)
+
+	go func(carID uint) {
+		_ = s.cache.Del(ctx, "cars:all")
+		_ = s.cache.Del(ctx, fmt.Sprintf("car:%d", carID))
 	}(car.ID)
 
 	return nil
@@ -56,9 +85,9 @@ func (s *CarService) GetAll() ([]model.Car, error) {
 	errChan := make(chan error, 2)
 
 	// Try to get from cache
-	go func(){
+	go func() {
 		val, err := s.cache.Get(ctx, "cars:all").Result()
-		if err == nil{
+		if err == nil {
 			var cars []model.Car
 			_ = json.Unmarshal([]byte(val), &cars)
 			carsChan <- cars
@@ -68,10 +97,10 @@ func (s *CarService) GetAll() ([]model.Car, error) {
 		carsChan <- nil
 	}()
 
-	go func(){
+	go func() {
 		cars, err := s.repo.GetAllCars()
 		if err != nil {
-			errChan <-  err
+			errChan <- err
 			carsChan <- nil
 			return
 		}
@@ -80,13 +109,13 @@ func (s *CarService) GetAll() ([]model.Car, error) {
 		_ = s.cache.Set(ctx, "cars:all", data, 5*time.Minute)
 	}()
 
-	for i := 0; i < 2; i ++{
-		select{
-		case cars := <- carsChan:
-			if cars != nil{
+	for i := 0; i < 2; i++ {
+		select {
+		case cars := <-carsChan:
+			if cars != nil {
 				return cars, nil
 			}
-		case err := <- errChan:
+		case err := <-errChan:
 			log.Println("Get all error: ", err)
 		}
 	}
@@ -118,7 +147,7 @@ func (s *CarService) Update(car *model.Car) error {
 		return err
 	}
 
-	go func(id uint){
+	go func(id uint) {
 		s.cache.Del(ctx, "cars:all")
 		s.cache.Del(ctx, fmt.Sprintf("car:%d", car.ID))
 	}(car.ID)
@@ -130,7 +159,7 @@ func (s *CarService) Delete(id uint) error {
 		return err
 	}
 
-	go func(id uint){
+	go func(id uint) {
 		s.cache.Del(ctx, "cars:all")
 		s.cache.Del(ctx, fmt.Sprintf("car:%d", id))
 	}(id)

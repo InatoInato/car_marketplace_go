@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/InatoInato/car_marketplace_go.git/internal/model"
 	"gorm.io/gorm"
 )
@@ -22,18 +24,23 @@ func (r *UserRepository) GetUserByID(id uint) (*model.User, error) {
 	err := r.db.First(&user, id).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, nil 
+			return nil, nil
 		}
 		return nil, err
 	}
 	return &user, nil
 }
 
-
 func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 	var user model.User
 	err := r.db.Where("email = ?", email).First(&user).Error
-	return &user, err
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *UserRepository) GetAllUsers() ([]model.User, error) {

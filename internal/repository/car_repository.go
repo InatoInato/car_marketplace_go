@@ -17,6 +17,19 @@ func (r *CarRepository) CreateCar(car *model.Car) error {
 	return r.db.Create(car).Error
 }
 
+func (r *CarRepository) CreateCarPhoto(photo *model.CarPhoto) error {
+	return r.db.Create(photo).Error
+}
+
+func (r *CarRepository) GetCarPhotos(carID uint) ([]model.CarPhoto, error) {
+	var photos []model.CarPhoto
+	err := r.db.Where("car_id = ?", carID).Find(&photos).Error
+	if err != nil {
+		return nil, err
+	}
+	return photos, nil
+}
+
 func (r *CarRepository) GetCarByID(id uint) (*model.Car, error) {
 	var car model.Car
 	err := r.db.First(&car, id).Error
@@ -29,11 +42,13 @@ func (r *CarRepository) GetCarByID(id uint) (*model.Car, error) {
 	return &car, nil
 }
 
-
 func (r *CarRepository) GetAllCars() ([]model.Car, error) {
 	var cars []model.Car
 	err := r.db.Find(&cars).Error
-	return cars, err
+	if err != nil {
+		return nil, err
+	}
+	return cars, nil
 }
 
 func (r *CarRepository) UpdateCar(car *model.Car) error {
@@ -41,5 +56,13 @@ func (r *CarRepository) UpdateCar(car *model.Car) error {
 }
 
 func (r *CarRepository) DeleteCar(id uint) error {
-	return r.db.Delete(&model.Car{}, id).Error
+	result := r.db.Delete(&model.Car{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		// Авто не найдено
+		return nil
+	}
+	return nil
 }

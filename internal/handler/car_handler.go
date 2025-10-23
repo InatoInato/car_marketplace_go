@@ -24,27 +24,27 @@ func NewCarHandler(service *service.CarService) *CarHandler {
 
 // ✅ CREATE
 func (h *CarHandler) CreateCar(c *fiber.Ctx) error {
-	var car model.Car
-	if err := c.BodyParser(&car); err != nil {
+	var req struct {
+		model.Car
+		PhotoURLs []string `json:"photo_urls"`
+	}
+	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
-	if err := h.validator.Struct(car); err != nil {
+	if err := h.validator.Struct(req.Car); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	
-	err := h.service.Create(&car)
-	if err != nil {
+	if err := h.service.CreateCarWithPhotos(&req.Car, req.PhotoURLs); err != nil {
 		if errors.Is(err, service.ErrUserNotFound) {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(201).JSON(car)
+	return c.Status(201).JSON(req.Car)
 }
-
 
 // ✅ READ ALL
 func (h *CarHandler) GetAllCars(c *fiber.Ctx) error {

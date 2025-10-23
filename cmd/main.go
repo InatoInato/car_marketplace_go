@@ -19,7 +19,8 @@ import (
 
 func main() {
 	// Load environment variables from .env file
-	err := godotenv.Load(); if err != nil{
+	err := godotenv.Load()
+	if err != nil {
 		log.Println("Error loading .env file")
 	}
 
@@ -27,10 +28,8 @@ func main() {
 	config.ConnectDB()
 	cache := config.ConnectRedis()
 
-
-
 	userRepo := repository.NewUserRepository(config.DB)
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, cache)
 	userHandler := handler.NewUserHandler(userService)
 
 	carRepo := repository.NewCarRepository(config.DB)
@@ -39,7 +38,7 @@ func main() {
 
 	// Get server port from environment variables
 	port := os.Getenv("SERVER_PORT")
-	if port == ""{
+	if port == "" {
 		port = "8080"
 	}
 

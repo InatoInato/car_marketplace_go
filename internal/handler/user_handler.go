@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/InatoInato/car_marketplace_go.git/internal/config"
 	"github.com/InatoInato/car_marketplace_go.git/internal/dto"
 	"github.com/InatoInato/car_marketplace_go.git/internal/model"
@@ -8,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type UserHandler struct{
+type UserHandler struct {
 	service *service.UserService
 }
 
@@ -42,14 +44,14 @@ func (h *UserHandler) Register(ctx *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	
+
 	return ctx.Status(201).JSON(fiber.Map{
 		"message": "User registered successfully",
 	})
 }
 
 func (h *UserHandler) Login(ctx *fiber.Ctx) error {
-	var input struct{
+	var input struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
@@ -74,6 +76,7 @@ func (h *UserHandler) Login(ctx *fiber.Ctx) error {
 
 func (h *UserHandler) GetAllUsers(ctx *fiber.Ctx) error {
 	users, err := h.service.GetAllUsers()
+	fmt.Printf("Users from DB: %+v, err: %v\n", users, err)
 	if err != nil {
 		return ctx.Status(500).JSON(fiber.Map{
 			"error": "Failed to retrieve users",
