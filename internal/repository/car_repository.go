@@ -44,7 +44,7 @@ func (r *CarRepository) GetCarByID(id uint) (*model.Car, error) {
 
 func (r *CarRepository) GetAllCars() ([]model.Car, error) {
 	var cars []model.Car
-	err := r.db.Find(&cars).Error
+	err := r.db.Preload("Photos").Find(&cars).Error
 	if err != nil {
 		return nil, err
 	}
